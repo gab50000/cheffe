@@ -30,15 +30,17 @@ class MainSpider(CrawlSpider):
 
         i['title'] = response.xpath(r"//h1[@class='page-title']/text()").extract_first()
 
-        votes = response.xpath(r"//span[contains(@class, 'total-votes')]/text()").extract_first().strip("()")
+        votes = response.xpath(r"//span[contains(@class, 'total-votes')]/text()")
         if votes:
+            votes = votes.extract_first().strip("()")
             i['votes'] = int(votes)
-            score = response.xpath(r"//span[contains(@class, 'average-rating')]/text()")
-            if not score:
-                inspect_response(response, self)
-            i['score'] = float(score.extract_first()[1:]  # remove the average sign
-                                    .replace(",", "."))
         else:
             i['votes'] = 0
+
+        if i['votes'] > 0:
+            score = response.xpath(r"//span[contains(@class, 'average-rating')]/text()")
+            i['score'] = float(score.extract_first()[1:]
+                                    .replace(",", "."))
+        else:
             i['score'] = None
         return i
