@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
+import unicodedata
+
 import scrapy
 from scrapy.linkextractors import LinkExtractor
 from scrapy.spiders import CrawlSpider, Rule
 from scrapy.shell import inspect_response
+from scrapy.utils.response import open_in_browser
 
 
 class MainSpider(CrawlSpider):
@@ -17,8 +20,25 @@ class MainSpider(CrawlSpider):
 
     def parse_item(self, response):
         i = {}
-        inspect_response(response, self)
-        #i['domain_id'] = response.xpath('//input[@id="sid"]/@value').extract()
-        #i['name'] = response.xpath('//div[@id="name"]').extract()
-        #i['description'] = response.xpath('//div[@id="description"]').extract()
+        amounts = response.xpath(r"//table[@class='incredients']/tr/td[@class='amount']/text()")
+        amounts = [unicodedata.normalize("NFKC", amt).strip() for amt in amounts.extract()]
+        i['amounts'] = amounts
+
+        ingredients = response.xpath(r"//table[@class='incredients']/tr/td[@class='amount']/following-sibling::td//text()")
+        ingredients = [ing.strip() for ing in ingredients.extract() if ing.strip()]
+        i['ingredients'] = ingredients
+
+        i['title'] = response.xpath(r"//h1[@class='page-title']/text()").extract_first()
+
+        votes = response.xpath(r"//span[contains(@class, 'total-votes')]/text()").extract_first().strip("()")
+        if votes:
+            i['votes'] = int(votes)
+            score = response.xpath(r"//span[contains(@class, 'average-rating')]/text()")
+            if not score:
+                inspect_response(response, self)
+            i['score'] = float(score.extract_first()[1:]  # remove the average sign
+                                    .replace(",", "."))
+        else:
+            i['votes'] = 0
+            i['score'] = None
         return i
