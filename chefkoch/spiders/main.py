@@ -20,18 +20,19 @@ class MainSpider(CrawlSpider):
 
     rules = (
         Rule(LinkExtractor(allow=r'/rs/.*'), follow=True),
-        Rule(LinkExtractor(allow=r'/rezepte/.*\.html'), callback='parse_item', follow=True),
+        Rule(LinkExtractor(allow=r'/rezepte/.*\.html'), deny=[r'/benutzer/einloggen/.*', r'/rezepte/wertungen/.*'],
+                           callback='parse_item', follow=True),
     )
 
     def parse_item(self, response):
         i = {}
+        i['url'] = response.url
         amounts = response.xpath(r"//table[@class='incredients']/tr/td[@class='amount']/text()")
         amounts = [unicodedata.normalize("NFKC", amt).strip() for amt in amounts.extract()]
-        i['amounts'] = amounts
 
         ingredients = response.xpath(r"//table[@class='incredients']/tr/td[@class='amount']/following-sibling::td//text()")
         ingredients = [ing.strip() for ing in ingredients.extract() if ing.strip()]
-        i['ingredients'] = ingredients
+        i['ingredients'] = list(zip(ingredients, amounts))
 
         i['title'] = response.xpath(r"//h1[@class='page-title']/text()").extract_first()
         infos = response.xpath(r"//p[@id='preparation-info']/descendant-or-self::*/text()").extract()
@@ -52,4 +53,8 @@ class MainSpider(CrawlSpider):
                                     .replace(",", "."))
         else:
             i['score'] = None
+
+        text = response.xpath(r"//div[@id='rezept-zubereitung']/descendant-or-self::*/text()").extract()
+        i['text'] = "".join(cleanup(t) for t in text)
+
         return i
