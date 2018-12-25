@@ -20,7 +20,7 @@ class MainSpider(CrawlSpider):
 
     rules = (
         Rule(LinkExtractor(allow=r'/rs/.*'), follow=True),
-        Rule(LinkExtractor(allow=r'/rezepte/.*\.html'), deny=[r'/benutzer/einloggen/.*', r'/rezepte/wertungen/.*'],
+        Rule(LinkExtractor(allow=r'/rezepte/.*\.html', deny=[r'/benutzer/einloggen/.*', r'/rezepte/wertungen/.*']),
                            callback='parse_item', follow=True),
     )
 
